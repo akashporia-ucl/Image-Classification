@@ -1,6 +1,7 @@
 Flask
 Flask-JWT-Extended
 Flask-SQLAlchemy
+Flask-cors
 tensorflow>=2.0
 numpy>=1.18
 pandas>=1.0

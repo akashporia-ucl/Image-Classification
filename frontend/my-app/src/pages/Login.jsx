@@ -16,14 +16,17 @@ const Login = () => {
         e.preventDefault();
 
         try {
-            const res = await fetch("http://localhost:3500/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: form.username,
-                    password: form.password,
-                }),
-            });
+            const res = await fetch(
+                "https://flask-ucabpor.comp0235.condenser.arc.ucl.ac.uk/login",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: form.username,
+                        password: form.password,
+                    }),
+                }
+            );
 
             const data = await res.json();
 

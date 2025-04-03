@@ -118,12 +118,13 @@ def predict():
 def run_spark():
     current_user = get_jwt_identity()
     logger.info(f"Spark job triggered by user: {current_user}")
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.appName("FlaskSparkApp").getOrCreate()
-    data = [(1, 'Alice'), (2, 'Bob')]
-    df = spark.createDataFrame(data, ['id', 'name'])
-    result = df.collect()
-    return jsonify(data=[row.asDict() for row in result])
+    # from pyspark.sql import SparkSession
+    # spark = SparkSession.builder.appName("FlaskSparkApp").getOrCreate()
+    # data = [(1, 'Alice'), (2, 'Bob')]
+    # df = spark.createDataFrame(data, ['id', 'name'])
+    # result = df.collect()
+    # return jsonify(data=[row.asDict() for row in result])
+    return jsonify(msg="Spark job triggered"), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=3500)
