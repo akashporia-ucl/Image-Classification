@@ -1,0 +1,7 @@
+Flask
+Flask-JWT-Extended
+Flask-SQLAlchemy
+tensorflow>=2.0
+numpy>=1.18
+pandas>=1.0
+pyspark>=3.0
