@@ -5,6 +5,7 @@ import Predict from "./pages/Predict";
 import ProtectedRoute from "./component/ProtectedRoute";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
+import LearnMore from "./pages/LearnMore";
 
 function App() {
     return (
@@ -20,6 +21,7 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+                <Route path="/learn-more" element={<LearnMore />} />
                 <Route path="/" element={<Landing />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>

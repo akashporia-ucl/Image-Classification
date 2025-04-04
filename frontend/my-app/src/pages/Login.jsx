@@ -8,9 +8,9 @@ const Login = () => {
     const navigate = useNavigate();
 
     const loginURL =
-        process.env.REACT_APP_LOGIN_URL != null
+        process.env.REACT_APP_USERNAME != null
             ? "https://flask-" +
-              process.env.REACT_APP_LOGIN_URL +
+              process.env.REACT_APP_USERNAME +
               ".comp0235.condenser.arc.ucl.ac.uk/login"
             : "http://localhost:3500/login";
 

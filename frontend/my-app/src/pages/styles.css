@@ -214,3 +214,59 @@ button:disabled {
 .landing-footer p {
     margin: 0.25rem 0;
 }
+
+/* LearnMore.css */
+
+/* Container styling to match overall layout and card style */
+.learn-more-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    color: #333;
+}
+
+/* Headings to match landing hero and auth-card styles */
+.learn-more-container h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: #111;
+}
+
+.learn-more-container h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 1.5rem 0 1rem;
+    color: #222;
+}
+
+/* Paragraph and list styling for readability */
+.learn-more-container p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    color: #444;
+}
+
+.learn-more-container ul {
+    margin-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.learn-more-container ul li {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    color: #444;
+}
+
+/* Code styling (if inline code is used) */
+.learn-more-container code {
+    background: #f4f4f4;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #e100ff;
+}

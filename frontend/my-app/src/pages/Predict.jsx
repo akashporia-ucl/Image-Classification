@@ -10,9 +10,9 @@ const Predict = () => {
     const navigate = useNavigate();
 
     const predictURL =
-        process.env.REACT_APP_LOGIN_URL != null
+        process.env.REACT_APP_USERNAME != null
             ? "https://flask-" +
-              process.env.REACT_APP_LOGIN_URL +
+              process.env.REACT_APP_USERNAME +
               ".comp0235.condenser.arc.ucl.ac.uk/predict"
             : "http://localhost:3500/predict";
 

@@ -12,9 +12,9 @@ const Signup = () => {
     const navigate = useNavigate();
 
     const signupURL =
-        process.env.REACT_APP_LOGIN_URL != null
+        process.env.REACT_APP_USERNAME != null
             ? "https://flask-" +
-              process.env.REACT_APP_LOGIN_URL +
+              process.env.REACT_APP_USERNAME +
               ".comp0235.condenser.arc.ucl.ac.uk/register"
             : "http://localhost:3500/register";
 
