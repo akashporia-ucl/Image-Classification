@@ -6,6 +6,7 @@
 /frontend/my-app/node_modules
 /frontend/my-app/.pnp
 /frontend/my-app/.pnp.js
+/frontend/my-app/.env
 
 # testing
 /frontend/my-app/coverage
@@ -28,3 +29,5 @@ yarn-error.log*
 
 /backend/instance
 /backend/uploads
+/backend/env
+/backend/.env

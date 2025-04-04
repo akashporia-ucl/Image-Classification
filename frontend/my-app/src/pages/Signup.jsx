@@ -11,6 +11,13 @@ const Signup = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const navigate = useNavigate();
 
+    const signupURL =
+        process.env.REACT_APP_LOGIN_URL != null
+            ? "https://flask-" +
+              process.env.REACT_APP_LOGIN_URL +
+              ".comp0235.condenser.arc.ucl.ac.uk/register"
+            : "http://localhost:3500/register";
+
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
         setErrorMsg(""); // clear error on new input
@@ -25,7 +32,7 @@ const Signup = () => {
         }
 
         try {
-            const res = await fetch("http://localhost:3500/register", {
+            const res = await fetch(signupURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

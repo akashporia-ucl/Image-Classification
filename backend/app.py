@@ -10,13 +10,21 @@ import subprocess
 import os
 import sys
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Load environment variables from the .env file
+load_dotenv(dotenv_path='/home/almalinux/Image Classification/backend/.env')
+
+# Read the CORS origins from the environment variable (comma-separated) or provide a fallback
+cors_origins = os.getenv('REACT_APP_CORS_ORIGINS', 'https://react-ucabpor.comp0235.condenser.arc.ucl.ac.uk,http://localhost:3501').split(',')
+
 app = Flask(__name__)
-CORS(app)
+# Enable CORS with multiple origins
+CORS(app, origins=cors_origins)
 
 # Configs
 app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)
@@ -127,4 +135,4 @@ def run_spark():
     return jsonify(msg="Spark job triggered"), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3500)
+    app.run(debug=True, host='0.0.0.0', port=3500)

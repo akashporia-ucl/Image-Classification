@@ -7,6 +7,13 @@ const Login = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const navigate = useNavigate();
 
+    const loginURL =
+        process.env.REACT_APP_LOGIN_URL != null
+            ? "https://flask-" +
+              process.env.REACT_APP_LOGIN_URL +
+              ".comp0235.condenser.arc.ucl.ac.uk/login"
+            : "http://localhost:3500/login";
+
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
         setErrorMsg(""); // Clear error when user types
@@ -16,17 +23,14 @@ const Login = () => {
         e.preventDefault();
 
         try {
-            const res = await fetch(
-                "https://flask-ucabpor.comp0235.condenser.arc.ucl.ac.uk/login",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        username: form.username,
-                        password: form.password,
-                    }),
-                }
-            );
+            const res = await fetch(loginURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: form.username,
+                    password: form.password,
+                }),
+            });
 
             const data = await res.json();
 

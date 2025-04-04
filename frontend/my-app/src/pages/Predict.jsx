@@ -9,6 +9,13 @@ const Predict = () => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    const predictURL =
+        process.env.REACT_APP_LOGIN_URL != null
+            ? "https://flask-" +
+              process.env.REACT_APP_LOGIN_URL +
+              ".comp0235.condenser.arc.ucl.ac.uk/predict"
+            : "http://localhost:3500/predict";
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setErrorMsg("");
@@ -35,7 +42,7 @@ const Predict = () => {
         setResult(null);
 
         try {
-            const res = await fetch("http://localhost:3500/predict", {
+            const res = await fetch(predictURL, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("token")}`,
