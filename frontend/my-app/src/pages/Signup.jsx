@@ -44,6 +44,8 @@ const Signup = () => {
             const data = await res.json();
 
             if (res.ok) {
+                // Store the token (adjust key name and storage as per your app requirements)
+                localStorage.setItem("accessToken", data.access_token);
                 navigate("/predict");
             } else {
                 setErrorMsg(data.msg || "Signup failed");

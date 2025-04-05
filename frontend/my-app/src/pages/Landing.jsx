@@ -23,6 +23,9 @@ const Landing = () => {
                     <Link to="/login" className="btn-primary">
                         Try It Now
                     </Link>
+                    <Link to="/learn-more" className="btn-primary">
+                        Learn More
+                    </Link>
                 </div>
             </header>
 
