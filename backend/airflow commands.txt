@@ -1,0 +1,15 @@
+python -m venv py_env
+source py_env/bin/activate
+pip install "apache-airflow[celery]==2.10.5" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.9.txt"
+
+
+
+[almalinux@worker1 backend]$ export AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db => with penv its options
+[almalinux@worker1 backend]$ export AIRFLOW_HOME=.
+[almalinux@worker1 backend]$ 
+[almalinux@worker1 backend]$ airflow db init
+
+[almalinux@worker1 backend]$ airflow users create --username akash --firstname firstname --lastname lastname --role Admin --email akash@airflow.com --> asked to enter password and confirmation
+[almalinux@worker1 backend]$ airflow webserver -p 7777
+[almalinux@worker1 backend]$ pip install apache-airflow-providers-apache-spark
+ 

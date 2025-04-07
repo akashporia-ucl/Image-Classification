@@ -22,6 +22,12 @@ load_dotenv(dotenv_path='/home/almalinux/Image Classification/backend/.env')
 # Read the CORS origins from the environment variable (comma-separated) or provide a fallback
 cors_origins = os.getenv('REACT_APP_CORS_ORIGINS', 'https://react-ucabpor.comp0235.condenser.arc.ucl.ac.uk,http://localhost:3501').split(',')
 
+# Ensure localhost is always included in the CORS origins
+if 'http://localhost:3501' not in cors_origins:
+    cors_origins.append('http://localhost:3501')
+
+logger.info(f"CORS origins: {cors_origins}")
+
 app = Flask(__name__)
 # Enable CORS with multiple origins
 CORS(app, origins=cors_origins)
@@ -60,15 +66,21 @@ if not os.path.exists(UPLOAD_FOLDER):
 def register():
     data = request.json
     logger.info(f"Register request received: {data}")
+    
     if User.query.filter_by(username=data['username']).first():
         logger.info("Username already exists")
         return jsonify({"msg": "Username already exists"}), 400
+    
     hashed_pw = generate_password_hash(data['password'])
     new_user = User(username=data['username'], password=hashed_pw)
     db.session.add(new_user)
     db.session.commit()
     logger.info(f"User '{data['username']}' registered successfully")
-    return jsonify({"msg": "User registered successfully"}), 201
+    
+    # Create and return a JWT token for automatic login
+    token = create_access_token(identity=data['username'])
+    return jsonify({"msg": "User registered successfully", "access_token": token}), 201
+
 
 @app.route('/login', methods=['POST'])
 def login():
