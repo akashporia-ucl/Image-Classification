@@ -11,6 +11,10 @@ import os
 import sys
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import threading
+import pika
+from flask_socketio import SocketIO 
+import json
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +35,9 @@ logger.info(f"CORS origins: {cors_origins}")
 app = Flask(__name__)
 # Enable CORS with multiple origins
 CORS(app, origins=cors_origins)
+
+# Setup Flask-SocketIO with allowed origins for CORS
+socketio = SocketIO(app, cors_allowed_origins=cors_origins)
 
 # Configs
 app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)
@@ -119,8 +126,22 @@ def predict():
     try:
         # Run the spark job, passing the image file path as an argument.
         # Make sure your spark_job.py script is updated to accept an '--image' argument.
-        subprocess.run([sys.executable, 'spark_job.py', '--image', file_path], check=True)
-        logger.info("Spark job executed successfully")
+        # subprocess.run([sys.executable, 'spark_job.py', '--image', file_path], check=True)
+        logger.info("Submitting request to get prediciton")
+        put_image_to_hdfs(file_path, "/data/images/")
+        cleanup_upload_folder(file_path)
+        message_data = {
+            'filename': filename,
+            'hdfs_path': "/data/images/" + filename
+        }
+
+        message = json.dumps(message_data)
+        request_publisher(message)
+        logger.info("Request sent to RabbitMQ")
+        response = response_consumer()
+        logger.info("Response received from RabbitMQ")
+
+
     except subprocess.CalledProcessError as e:
         logger.error(f"Spark job failed: {e}")
         return jsonify(msg="Prediction failed due to spark job error"), 500
@@ -128,23 +149,114 @@ def predict():
     # You can have your spark_job.py script write out a prediction result file or 
     # capture output in some way. Here we simply return a dummy response.
     result = {
-        "prediction": "dummy_value",  # Replace with actual prediction output
-        "details": "Spark job finished processing"
+        "Result": response
     }
     return jsonify(result), 200
 
-@app.route('/run-spark', methods=['GET'])
-@jwt_required()
-def run_spark():
-    current_user = get_jwt_identity()
-    logger.info(f"Spark job triggered by user: {current_user}")
-    # from pyspark.sql import SparkSession
-    # spark = SparkSession.builder.appName("FlaskSparkApp").getOrCreate()
-    # data = [(1, 'Alice'), (2, 'Bob')]
-    # df = spark.createDataFrame(data, ['id', 'name'])
-    # result = df.collect()
-    # return jsonify(data=[row.asDict() for row in result])
-    return jsonify(msg="Spark job triggered"), 200
+
+def put_image_to_hdfs(local_file, hdfs_path):
+    # Run the hdfs dfs -put command using subprocess
+    try:
+        logger.info(f"Uploading {local_file} to HDFS at {hdfs_path}")
+        result = subprocess.run(
+            ['hdfs', 'dfs', '-put', local_file, hdfs_path],
+            check=True,  # This will raise an error if the command fails
+            stdout=subprocess.PIPE,  # Capture standard output
+            stderr=subprocess.PIPE   # Capture standard error
+        )
+        print(f"Output: {result.stdout.decode()}")
+        logger.info(f"Successfully uploaded {local_file} to HDFS at {hdfs_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e.stderr.decode()}")
+
+def cleanup_upload_folder(local_file):
+    try:
+        os.remove(local_file)
+        logger.info(f"Removed local file: {local_file}")
+    except Exception as e:
+        logger.error(f"Error removing local file: {e}")
+
+
+credentials = pika.PlainCredentials('myuser', 'mypassword')
+# ------------- RabbitMQ Consumer Setup with SocketIO ------------------
+def model_tuning_consumer():
+    def callback(ch, method, properties, body):
+        message = body.decode('utf-8')
+        print(" [x] Received message from RabbitMQ: %s" % message)
+        # Emit a SocketIO event to the front end with the received message.
+        socketio.emit('rabbitmq_message', {'message': message}, broadcast=True)
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='worker1', credentials=credentials))
+        channel = connection.channel()
+        channel.queue_declare(queue='task_queue', durable=True)
+        print("[*] RabbitMQ consumer started, waiting for messages.")
+        channel.basic_consume(queue='task_queue', on_message_callback=callback, auto_ack=True)
+        channel.start_consuming()
+    except Exception as e:
+        logger.error("Error in RabbitMQ consumer: %s", e)
+
+# Start the consumer in a background daemon thread.
+threading.Thread(target=model_tuning_consumer, daemon=True).start()
+# ------------- End RabbitMQ Consumer Setup --------------
+
+
+def request_publisher(message):
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='worker1', credentials=credentials))
+        channel = connection.channel()
+
+        # Declare a direct exchange
+        channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
+
+        # Declare the queue
+        channel.queue_declare(queue='request_queue', durable=True)
+
+        # Bind the queue to the exchange with a specific routing key
+        channel.queue_bind(exchange='direct_logs', queue='request_queue', routing_key='request_key')
+
+        # Publish the message to the direct exchange with a routing key
+        channel.basic_publish(exchange='direct_logs', 
+                            routing_key='request_key', 
+                            body=message)
+        print("Message sent to RabbitMQ: %s" % message)
+        # Close the connection
+        connection.close()
+    except Exception as e:
+        logger.error("Error in RabbitMQ publisher: %s", e)
+
+def response_consumer():
+    response_result = {}
+    def response_callback(ch, method, properties, body):
+        message = body.decode('utf-8')
+        print(" [x] Received response from RabbitMQ: %s" % message)
+        response_result['message'] = message
+        ch.stop_consuming()  # Stop consuming after receiving the first message
+
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='worker1', credentials=credentials))
+        channel = connection.channel()
+
+        # Declare a direct exchange
+        channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
+
+        # Declare the queue
+        channel.queue_declare(queue='response_queue', durable=True)
+
+        # Bind the queue to the exchange with a specific routing key
+        channel.queue_bind(exchange='direct_logs', queue='response_queue', routing_key='response_key')
+
+        print(' [*] Waiting for messages. To exit press CTRL+C')
+        channel.basic_consume(queue='response_queue', on_message_callback=response_callback, auto_ack=True)
+
+        channel.start_consuming()
+
+        connection.close()
+        return response_result
+
+    except Exception as e:
+        logger.error("Error in RabbitMQ response consumer: %s", e)
+        return None
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3500)
+    #app.run(debug=True, host='0.0.0.0', port=3500)
+    socketio.run(app, debug=True, host='0.0.0.0', port=3500)

@@ -3,3 +3,5 @@ Flask-JWT-Extended
 Flask-SQLAlchemy
 Flask-cors
 python-dotenv
+flask-socketio
+pika

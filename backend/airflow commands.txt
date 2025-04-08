@@ -9,7 +9,17 @@ pip install "apache-airflow[celery]==2.10.5" --constraint "https://raw.githubuse
 [almalinux@worker1 backend]$ 
 [almalinux@worker1 backend]$ airflow db init
 
-[almalinux@worker1 backend]$ airflow users create --username akash --firstname firstname --lastname lastname --role Admin --email akash@airflow.com --> asked to enter password and confirmation
+[almalinux@worker1 backend]$ airflow users create --username admin --firstname firstname --lastname lastname --role Admin --email admin@airflow.com --> asked to enter password and confirmation
 [almalinux@worker1 backend]$ airflow webserver -p 7777
 [almalinux@worker1 backend]$ pip install apache-airflow-providers-apache-spark
  
+
+ from                                                  
+airflow.providers.apache.spark.operators.spark_submit     
+ import SparkSubmitOperator                                
+ ModuleNotFoundError: No module named                      
+ 'airflow.providers.apache'  
+
+
+
+  export AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db && export AIRFLOW_HOME=.
