@@ -188,9 +188,11 @@ def model_tuning_consumer():
     try:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='worker1', credentials=credentials))
         channel = connection.channel()
-        channel.queue_declare(queue='task_queue', durable=True)
+        channel.queue_declare(queue='model_queue', durable=True)
+        channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
+        channel.queue_bind(exchange='direct_logs', queue='model_queue', routing_key='model_key')
         print("[*] RabbitMQ consumer started, waiting for messages.")
-        channel.basic_consume(queue='task_queue', on_message_callback=callback, auto_ack=True)
+        channel.basic_consume(queue='model_queue', on_message_callback=callback, auto_ack=True)
         channel.start_consuming()
     except Exception as e:
         logger.error("Error in RabbitMQ consumer: %s", e)

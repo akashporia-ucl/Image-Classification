@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles.css";
+import io from "socket.io-client";
 
 const Predict = () => {
     const [image, setImage] = useState(null);
@@ -9,12 +10,31 @@ const Predict = () => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const predictURL =
+    const [message, setMessage] = useState("");
+    const [buttonEnabled, setButtonEnabled] = useState(false);
+
+    const baseURL =
         process.env.REACT_APP_USERNAME != null
             ? "https://flask-" +
               process.env.REACT_APP_USERNAME +
-              ".comp0235.condenser.arc.ucl.ac.uk/predict"
-            : "http://localhost:3500/predict";
+              ".comp0235.condenser.arc.ucl.ac.uk/"
+            : "http://localhost:3500/";
+
+    const predictURL = baseURL + "predict";
+
+    const socket = io(baseURL);
+
+    useEffect(() => {
+        socket.on("rabbitmq_message", (msg) => {
+            console.log("Received message from RabbitMQ:", msg);
+            setMessage(msg);
+            setButtonEnabled(true);
+        });
+
+        return () => {
+            socket.off("rabbitmq_message");
+        };
+    }, []);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -94,10 +114,15 @@ const Predict = () => {
                 <button
                     type="submit"
                     className="btn-gradient"
-                    disabled={loading}
+                    disabled={!buttonEnabled}
                 >
                     {loading ? "Getting prediction..." : "Classify"}
                 </button>
+                {!buttonEnabled && (
+                    <p className="subtext">
+                        Waiting for Model training to complete...
+                    </p>
+                )}
             </form>
             <button
                 className="btn-gradient logout-button"
