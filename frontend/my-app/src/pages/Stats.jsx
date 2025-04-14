@@ -6,7 +6,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 // Registering necessary chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const CsvReader = () => {
+const Stats = () => {
     const [tableData, setTableData] = useState([]);
     const [stats, setStats] = useState({ total: 0, correct: 0, incorrect: 0 });
 
@@ -107,4 +107,4 @@ const CsvReader = () => {
     );
 };
 
-export default CsvReader;
+export default Stats;

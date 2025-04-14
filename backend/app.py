@@ -163,30 +163,33 @@ def get_csv():
     current_user = get_jwt_identity()
     logger.info(f"CSV download requested by user: {current_user}")
 
-    # Path to the CSV file
-    result = subprocess.run(
-            ['hdfs', 'dfs', '-get', '/data/model_collated/test_results_inception'],
-            check=True,  # This will raise an error if the command fails
-            stdout=subprocess.PIPE,  # Capture standard output
-            stderr=subprocess.PIPE   # Capture standard error
+    hdfs_file_path = '/data/model_collated/test_results_inception'  # HDFS file path
+
+    try:
+        # Use `-cat` to fetch the file content directly rather than downloading it locally
+        result = subprocess.run(
+            ['hdfs', 'dfs', '-cat', hdfs_file_path],
+            check=True,             # Will raise an error if the command fails
+            stdout=subprocess.PIPE, # Capture file content from stdout
+            stderr=subprocess.PIPE  # Capture error output
         )
-    logger.info(f"Output: {result.stdout.decode()}")
-    
-    # Return the CSV file as a response
-    csv_file_path = '/data/model_collated/test_results_inception'
-    if os.path.exists(csv_file_path):
-        with open(csv_file_path, 'rb') as f:
-            response = app.response_class(
-                response=f.read(),
-                status=200,
-                mimetype='text/csv'
-            )
-            response.headers['Content-Disposition'] = 'attachment; filename=test_results_inception.csv'
-            logger.info("CSV file sent successfully")
-            return response
-    else:
-        logger.error("CSV file not found")
-        return jsonify(msg="CSV file not found"), 404
+        csv_content = result.stdout
+        logger.info(f"Fetched CSV content from HDFS ({len(csv_content)} bytes)")
+
+        # Return the CSV file content as a downloadable response
+        response = app.response_class(
+            response=csv_content,
+            status=200,
+            mimetype='text/csv'
+        )
+        response.headers['Content-Disposition'] = 'attachment; filename=test_results_inception.csv'
+        logger.info("CSV file sent successfully")
+        return response
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error fetching CSV file from HDFS: {e.stderr.decode()}")
+        return jsonify(msg="CSV file not found or error fetching from HDFS"), 500
+
 
 def put_image_to_hdfs(local_file, hdfs_path):
     # Run the hdfs dfs -put command using subprocess
