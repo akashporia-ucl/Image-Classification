@@ -11,7 +11,6 @@ import os
 import sys
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import threading
 import pika
 from flask_socketio import SocketIO 
 import json
@@ -153,6 +152,41 @@ def predict():
     }
     return jsonify(result), 200
 
+@app.route('/test_socket')
+def test_socket():
+    socketio.emit('rabbitmq_message', {'message': 'Test message from server'})
+    return 'Test event sent!'
+
+@app.route('/csv', methods=['GET'])
+@jwt_required()
+def get_csv():
+    current_user = get_jwt_identity()
+    logger.info(f"CSV download requested by user: {current_user}")
+
+    # Path to the CSV file
+    result = subprocess.run(
+            ['hdfs', 'dfs', '-get', '/data/model_collated/test_results_inception'],
+            check=True,  # This will raise an error if the command fails
+            stdout=subprocess.PIPE,  # Capture standard output
+            stderr=subprocess.PIPE   # Capture standard error
+        )
+    logger.info(f"Output: {result.stdout.decode()}")
+    
+    # Return the CSV file as a response
+    csv_file_path = '/data/model_collated/test_results_inception'
+    if os.path.exists(csv_file_path):
+        with open(csv_file_path, 'rb') as f:
+            response = app.response_class(
+                response=f.read(),
+                status=200,
+                mimetype='text/csv'
+            )
+            response.headers['Content-Disposition'] = 'attachment; filename=test_results_inception.csv'
+            logger.info("CSV file sent successfully")
+            return response
+    else:
+        logger.error("CSV file not found")
+        return jsonify(msg="CSV file not found"), 404
 
 def put_image_to_hdfs(local_file, hdfs_path):
     # Run the hdfs dfs -put command using subprocess
@@ -164,10 +198,10 @@ def put_image_to_hdfs(local_file, hdfs_path):
             stdout=subprocess.PIPE,  # Capture standard output
             stderr=subprocess.PIPE   # Capture standard error
         )
-        print(f"Output: {result.stdout.decode()}")
+        logger.info(f"Output: {result.stdout.decode()}")
         logger.info(f"Successfully uploaded {local_file} to HDFS at {hdfs_path}")
     except subprocess.CalledProcessError as e:
-        print(f"Error: {e.stderr.decode()}")
+        logger.error(f"Error: {e.stderr.decode()}")
 
 def cleanup_upload_folder(local_file):
     try:
@@ -176,29 +210,43 @@ def cleanup_upload_folder(local_file):
     except Exception as e:
         logger.error(f"Error removing local file: {e}")
 
+# --- Socket Connection Logging ---
+@socketio.on('connect')
+def handle_connect():
+    logger.info("Client connected with session id: %s", request.sid)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    logger.info("Client disconnected with session id: %s", request.sid)
+# -------------------------------
+
 
 credentials = pika.PlainCredentials('myuser', 'mypassword')
 # ------------- RabbitMQ Consumer Setup with SocketIO ------------------
 def model_tuning_consumer():
     def callback(ch, method, properties, body):
         message = body.decode('utf-8')
-        print(" [x] Received message from RabbitMQ: %s" % message)
+        logger.info(" [x] Received message from RabbitMQ: %s" % message)
         # Emit a SocketIO event to the front end with the received message.
-        socketio.emit('rabbitmq_message', {'message': message}, broadcast=True)
+        if(message=="Model tuning completed"):
+            socketio.emit('rabbitmq_message', {'message': message})
+        else:
+            socketio.emit('update_message', {'message': message})
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='worker1', credentials=credentials))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='management', credentials=credentials))
         channel = connection.channel()
+        #channel.queue_declare(queue='model_queue', durable=True)
         channel.queue_declare(queue='model_queue', durable=True)
         channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
         channel.queue_bind(exchange='direct_logs', queue='model_queue', routing_key='model_key')
-        print("[*] RabbitMQ consumer started, waiting for messages.")
+        logger.info("[*] RabbitMQ consumer started, waiting for messages.")
         channel.basic_consume(queue='model_queue', on_message_callback=callback, auto_ack=True)
         channel.start_consuming()
     except Exception as e:
         logger.error("Error in RabbitMQ consumer: %s", e)
 
 # Start the consumer in a background daemon thread.
-threading.Thread(target=model_tuning_consumer, daemon=True).start()
+socketio.start_background_task(model_tuning_consumer)
 # ------------- End RabbitMQ Consumer Setup --------------
 
 
@@ -220,7 +268,7 @@ def request_publisher(message):
         channel.basic_publish(exchange='direct_logs', 
                             routing_key='request_key', 
                             body=message)
-        print("Message sent to RabbitMQ: %s" % message)
+        logger.info("Message sent to RabbitMQ: %s" % message)
         # Close the connection
         connection.close()
     except Exception as e:
@@ -230,7 +278,7 @@ def response_consumer():
     response_result = {}
     def response_callback(ch, method, properties, body):
         message = body.decode('utf-8')
-        print(" [x] Received response from RabbitMQ: %s" % message)
+        logger.info(" [x] Received response from RabbitMQ: %s" % message)
         response_result['message'] = message
         ch.stop_consuming()  # Stop consuming after receiving the first message
 
@@ -247,7 +295,7 @@ def response_consumer():
         # Bind the queue to the exchange with a specific routing key
         channel.queue_bind(exchange='direct_logs', queue='response_queue', routing_key='response_key')
 
-        print(' [*] Waiting for messages. To exit press CTRL+C')
+        logger.info(' [*] Waiting for messages. To exit press CTRL+C')
         channel.basic_consume(queue='response_queue', on_message_callback=response_callback, auto_ack=True)
 
         channel.start_consuming()

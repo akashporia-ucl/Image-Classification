@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles.css";
 import io from "socket.io-client";
+import { useWebSocket } from "../component/WebSocketProvider";
 
 const Predict = () => {
     const [image, setImage] = useState(null);
@@ -9,9 +10,10 @@ const Predict = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    // const [message, setMessage] = useState("");
+    // const [buttonEnabled, setButtonEnabled] = useState(false);
 
-    const [message, setMessage] = useState("");
-    const [buttonEnabled, setButtonEnabled] = useState(false);
+    const { message, buttonEnabled } = useWebSocket();
 
     const baseURL =
         process.env.REACT_APP_USERNAME != null
@@ -22,19 +24,33 @@ const Predict = () => {
 
     const predictURL = baseURL + "predict";
 
-    const socket = io(baseURL);
+    // Initialize socket connection only once
+    //const socket = io(baseURL);
 
-    useEffect(() => {
-        socket.on("rabbitmq_message", (msg) => {
-            console.log("Received message from RabbitMQ:", msg);
-            setMessage(msg);
-            setButtonEnabled(true);
-        });
+    // useEffect(() => {
+    //     // Log when the socket connects
+    //     socket.on("connect", () => {
+    //         console.log("Socket connected with id:", socket.id);
+    //     });
 
-        return () => {
-            socket.off("rabbitmq_message");
-        };
-    }, []);
+    //     // Log disconnections
+    //     socket.on("disconnect", () => {
+    //         console.log("Socket disconnected");
+    //     });
+
+    //     // Log any messages received from RabbitMQ via the server
+    //     socket.on("rabbitmq_message", (msg) => {
+    //         console.log("Received message from RabbitMQ:", msg);
+    //         setMessage(msg);
+    //         setButtonEnabled(true);
+    //     });
+
+    //     return () => {
+    //         socket.off("connect");
+    //         socket.off("disconnect");
+    //         socket.off("rabbitmq_message");
+    //     };
+    // }, [socket]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -69,14 +85,6 @@ const Predict = () => {
                 },
                 body: formData,
             });
-
-            // const res = await fetch("http://localhost:3500/protected", {
-            //     method: "GET",
-            //     headers: {
-            //         Authorization: `Bearer ${localStorage.getItem("token")}`,
-            //     },
-            // });
-
             const data = await res.json();
 
             if (res.ok) {
@@ -118,11 +126,6 @@ const Predict = () => {
                 >
                     {loading ? "Getting prediction..." : "Classify"}
                 </button>
-                {!buttonEnabled && (
-                    <p className="subtext">
-                        Waiting for Model training to complete...
-                    </p>
-                )}
             </form>
             <button
                 className="btn-gradient logout-button"
@@ -135,6 +138,11 @@ const Predict = () => {
                     <h3>Result:</h3>
                     <pre>{JSON.stringify(result, null, 2)}</pre>
                 </div>
+            )}
+            {!buttonEnabled && (
+                <p className="subtext">
+                    Waiting for Model training to complete...
+                </p>
             )}
         </div>
     );

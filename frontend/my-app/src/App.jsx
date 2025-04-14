@@ -6,26 +6,49 @@ import ProtectedRoute from "./component/ProtectedRoute";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import LearnMore from "./pages/LearnMore";
+import Stats from "./pages/Stats"; // Ensure Stats is imported
+import { useWebSocket, WebSocketProvider } from "./component/WebSocketProvider";
 
-function App() {
+const AppRoutes = () => {
+    // Now this hook is called within a component that is a child of the provider.
+    const { pageActive } = useWebSocket();
+
     return (
-        <Router>
-            <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+        <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+                path="/predict"
+                element={
+                    <ProtectedRoute>
+                        <Predict />
+                    </ProtectedRoute>
+                }
+            />
+            <Route path="/learn-more" element={<LearnMore />} />
+            {pageActive && (
                 <Route
-                    path="/predict"
+                    path="/stats"
                     element={
                         <ProtectedRoute>
-                            <Predict />
+                            <Stats />
                         </ProtectedRoute>
                     }
                 />
-                <Route path="/learn-more" element={<LearnMore />} />
-                <Route path="/" element={<Landing />} />
-                <Route path="*" element={<NotFound />} />
-            </Routes>
-        </Router>
+            )}
+            <Route path="/" element={<Landing />} />
+            <Route path="*" element={<NotFound />} />
+        </Routes>
+    );
+};
+
+function App() {
+    return (
+        <WebSocketProvider>
+            <Router>
+                <AppRoutes />
+            </Router>
+        </WebSocketProvider>
     );
 }
 

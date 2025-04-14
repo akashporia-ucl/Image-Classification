@@ -23,3 +23,19 @@ airflow.providers.apache.spark.operators.spark_submit
 
 
   export AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db && export AIRFLOW_HOME=.
+
+
+pip install apache-airflow-providers-postgres
+
+POSTGRES:
+
+sudo dnf sudo yum install -y postgresql-server postgresql-contrib
+sudo postgresql-setup initdb
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+sudo -u postgres psql
+
+CREATE DATABASE airflow;
+CREATE USER admin WITH ENCRYPTED PASSWORD 'admin';
+GRANT ALL PRIVILEGES ON DATABASE airflow TO admin;
+\q
