@@ -89,6 +89,7 @@ const Predict = () => {
 
             if (res.ok) {
                 setResult(data);
+                console.log("Prediction result:", data);
             } else {
                 setErrorMsg(data.msg || "Prediction failed");
             }
@@ -128,6 +129,15 @@ const Predict = () => {
                 </button>
             </form>
             <button
+                className="btn-gradient"
+                disabled={!buttonEnabled}
+                onClick={() => {
+                    navigate("/stats");
+                }}
+            >
+                View Statistics
+            </button>
+            <button
                 className="btn-gradient logout-button"
                 onClick={handleLogout}
             >
@@ -136,12 +146,19 @@ const Predict = () => {
             {result && (
                 <div className="result">
                     <h3>Result:</h3>
-                    <pre>{JSON.stringify(result, null, 2)}</pre>
+                    {result.Result == 1 ? (
+                        <pre className="result-text">AI-generated</pre>
+                    ) : (
+                        <pre className="result-text">Human-generated</pre>
+                    )}
+                    {/* <pre>{JSON.stringify(result, null, 2)}</pre> */}
                 </div>
             )}
             {!buttonEnabled && (
                 <p className="subtext">
-                    Waiting for Model training to complete...
+                    {message == ""
+                        ? "Waiting for Model training to complete.."
+                        : message}
                 </p>
             )}
         </div>

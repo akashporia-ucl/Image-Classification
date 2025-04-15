@@ -271,3 +271,52 @@ button:disabled {
     font-family: monospace;
     color: #e100ff;
 }
+
+/* Stats Component Styles */
+.stats-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.stats-container h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: #111;
+}
+
+/* Styling for the CSV table in stats */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+}
+
+.stats-table th,
+.stats-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.stats-table th {
+    background: #f7f7f7;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Stats Text Section */
+.stats-section {
+    text-align: center;
+    font-size: 1rem;
+    color: #444;
+}
+
+.stats-section p {
+    margin: 0.5rem 0;
+}

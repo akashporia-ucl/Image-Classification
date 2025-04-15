@@ -7,12 +7,9 @@ import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import LearnMore from "./pages/LearnMore";
 import Stats from "./pages/Stats"; // Ensure Stats is imported
-import { useWebSocket, WebSocketProvider } from "./component/WebSocketProvider";
+import { WebSocketProvider } from "./component/WebSocketProvider";
 
 const AppRoutes = () => {
-    // Now this hook is called within a component that is a child of the provider.
-    const { pageActive } = useWebSocket();
-
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
@@ -26,16 +23,14 @@ const AppRoutes = () => {
                 }
             />
             <Route path="/learn-more" element={<LearnMore />} />
-            {pageActive && (
-                <Route
-                    path="/stats"
-                    element={
-                        <ProtectedRoute>
-                            <Stats />
-                        </ProtectedRoute>
-                    }
-                />
-            )}
+            <Route
+                path="/stats"
+                element={
+                    <ProtectedRoute>
+                        <Stats />
+                    </ProtectedRoute>
+                }
+            />
             <Route path="/" element={<Landing />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
