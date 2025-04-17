@@ -40,8 +40,15 @@ const Landing = () => {
                         >
                             Dataset Credit
                         </a>{" "}
-                        &bull; Inspired by ResNet50, InceptionV3, VGG16 and
-                        community research.
+                        &bull;{" "}
+                        <a
+                            href="https://www.kaggle.com/datasets/alessandrasala79/ai-vs-human-generated-dataset"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Prediction Model
+                        </a>{" "}
+                        &bull; Inspired by ResNet50 and community research.
                     </p>
                 </div>
             </footer>

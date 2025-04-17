@@ -34,7 +34,7 @@ if 'http://localhost:3501' not in cors_origins:
 logger.info(f"CORS origins: {cors_origins}")
 
 app = Flask(__name__)
-CORS(app, origins=cors_origins)
+CORS(app, supports_credentials = True,origins=cors_origins)
 socketio = SocketIO(app, cors_allowed_origins=cors_origins)
 
 # -----------------------------------------------------------------------------
@@ -43,6 +43,7 @@ socketio = SocketIO(app, cors_allowed_origins=cors_origins)
 app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
 
 jwt = JWTManager(app)
 db = SQLAlchemy(app)
@@ -73,14 +74,28 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
 
+class AppState(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.Text, nullable=False)
+    button_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    page_active = db.Column(db.Boolean, nullable=False, default=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+
 with app.app_context():
     db.create_all()
-    if not User.query.filter_by(username='testuser').first():
-        hashed_pw = generate_password_hash('testpass')
-        test_user = User(username='testuser', password=hashed_pw)
+    if not User.query.filter_by(username='admin').first():
+        hashed_pw = generate_password_hash('admin')
+        test_user = User(username='admin', password=hashed_pw)
         db.session.add(test_user)
         db.session.commit()
-        logger.info("Test user 'testuser' created with password 'testpass'")
+        logger.info("Test user 'admin' created with password 'admin'")
+
+    if not AppState.query.first():
+        initial_state = AppState(message='Initial message', button_enabled=False, page_active=False)
+        db.session.add(initial_state)
+        db.session.commit()
+        logger.info("Initial app state created")
 
 # -----------------------------------------------------------------------------
 # RabbitMQ Publisher
@@ -276,18 +291,40 @@ def get_csv(mode):
     except subprocess.CalledProcessError as e:
         logger.error("Error fetching CSV file from HDFS: %s", e.stderr.decode())
         return jsonify(msg="CSV file not found or error fetching from HDFS"), 500
+    
+@app.route('/state', methods=['GET'])
+def get_state():
+    state = AppState.query.first()
+    return jsonify({
+        'message': state.message,
+        'buttonEnabled': state.button_enabled,
+        'pageActive': state.page_active
+    })
+
 
 # -----------------------------------------------------------------------------
 # SocketIO and Background Task for Model Tuning Messages
 # -----------------------------------------------------------------------------
+def broadcast_and_persist(msg, enable_button=False, activate_page=False):
+    # 1) update DB
+    state = AppState.query.first()
+    state.message = msg
+    state.button_enabled = enable_button
+    state.page_active = activate_page
+    db.session.commit()
+    # 2) emit
+    socketio.emit('rabbitmq_message', {'message': msg})
+    if not activate_page:
+        socketio.emit('update_message', {'message': msg})
+
 def model_tuning_consumer():
     def callback(ch, method, properties, body):
         message = body.decode('utf-8')
         logger.info("Received RabbitMQ message: %s", message)
         if message == "Model tuning completed":
-            socketio.emit('rabbitmq_message', {'message': message})
+            broadcast_and_persist(message, enable_button=True, activate_page=True)
         else:
-            socketio.emit('update_message', {'message': message})
+            broadcast_and_persist(message)
     try:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='management', credentials=credentials))
         channel = connection.channel()
