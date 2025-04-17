@@ -79,6 +79,9 @@ export const WebSocketProvider = ({ children }) => {
         };
 
         initialise();
+        console.log(message);
+        console.log(buttonEnabled);
+        console.log(pageActive);
     }, [baseURL]);
 
     // Keep localStorage in sync whenever the relevant state changes.

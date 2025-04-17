@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import LearnMore from "./pages/LearnMore";
 import Stats from "./pages/Stats"; // Ensure Stats is imported
 import { WebSocketProvider } from "./component/WebSocketProvider";
+import { useEffect } from "react";
 
 const AppRoutes = () => {
     return (
@@ -38,6 +39,11 @@ const AppRoutes = () => {
 };
 
 function App() {
+    useEffect(() => {
+        // Clear localStorage on app start
+        localStorage.clear();
+        console.log("Local storage cleared.");
+    }, []);
     return (
         <WebSocketProvider>
             <Router>

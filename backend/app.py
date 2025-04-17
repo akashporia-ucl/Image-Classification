@@ -76,7 +76,7 @@ class User(db.Model):
 
 class AppState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.Text, nullable=False)
+    message = db.Column(db.Text, nullable=False, default='Waiting for Model training to complete...')
     button_enabled = db.Column(db.Boolean, nullable=False, default=False)
     page_active = db.Column(db.Boolean, nullable=False, default=False)
     timestamp = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
