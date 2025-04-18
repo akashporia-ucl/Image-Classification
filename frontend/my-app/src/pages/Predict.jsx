@@ -92,7 +92,7 @@ const Predict = () => {
                 Upload an image to determine if it’s AI‑generated or human‑made.
             </p>
 
-            <p className="subtext">{message.message}</p>
+            <p className="subtext">{message}</p>
 
             {errorMsg && <p className="error-msg">{errorMsg}</p>}
 

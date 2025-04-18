@@ -59,13 +59,13 @@ export const WebSocketProvider = ({ children }) => {
             });
             socket.on("rabbitmq_message", (msg) => {
                 console.log("Received message from RabbitMQ:", msg);
-                setMessage(msg);
+                setMessage(msg.message);
                 setButtonEnabled(true);
                 setPageActive(true);
             });
             socket.on("update_message", (msg) => {
                 console.log("Received update message:", msg);
-                setMessage(msg);
+                setMessage(msg.message);
             });
 
             // cleanup
