@@ -3,7 +3,6 @@ import time
 import json
 import subprocess
 import os
-import sys
 import logging
 import pika
 from flask import Flask, jsonify, request
@@ -34,7 +33,7 @@ if 'http://localhost:3501' not in cors_origins:
 logger.info(f"CORS origins: {cors_origins}")
 
 app = Flask(__name__)
-CORS(app, supports_credentials = True,origins=cors_origins)
+CORS(app, supports_credentials=True, origins=cors_origins)
 socketio = SocketIO(app, cors_allowed_origins=cors_origins)
 
 # -----------------------------------------------------------------------------
@@ -80,7 +79,6 @@ class AppState(db.Model):
     button_enabled = db.Column(db.Boolean, nullable=False, default=False)
     page_active = db.Column(db.Boolean, nullable=False, default=False)
     timestamp = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
-
 
 with app.app_context():
     db.create_all()
@@ -291,7 +289,7 @@ def get_csv(mode):
     except subprocess.CalledProcessError as e:
         logger.error("Error fetching CSV file from HDFS: %s", e.stderr.decode())
         return jsonify(msg="CSV file not found or error fetching from HDFS"), 500
-    
+
 @app.route('/state', methods=['GET'])
 def get_state():
     state = AppState.query.first()
@@ -300,7 +298,6 @@ def get_state():
         'buttonEnabled': state.button_enabled,
         'pageActive': state.page_active
     })
-
 
 # -----------------------------------------------------------------------------
 # SocketIO and Background Task for Model Tuning Messages
@@ -318,24 +315,29 @@ def broadcast_and_persist(msg, enable_button=False, activate_page=False):
         socketio.emit('update_message', {'message': msg})
 
 def model_tuning_consumer():
-    def callback(ch, method, properties, body):
-        message = body.decode('utf-8')
-        logger.info("Received RabbitMQ message: %s", message)
-        if message == "Model tuning completed":
-            broadcast_and_persist(message, enable_button=True, activate_page=True)
-        else:
-            broadcast_and_persist(message)
-    try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='management', credentials=credentials))
-        channel = connection.channel()
-        channel.queue_declare(queue='model_queue', durable=True)
-        channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
-        channel.queue_bind(exchange='direct_logs', queue='model_queue', routing_key='model_key')
-        logger.info("RabbitMQ consumer started, waiting for messages.")
-        channel.basic_consume(queue='model_queue', on_message_callback=callback, auto_ack=True)
-        channel.start_consuming()
-    except Exception as e:
-        logger.error("Error in RabbitMQ consumer: %s", e)
+    # ensure Flask app context for DB and emit
+    with app.app_context():
+        def callback(ch, method, properties, body):
+            message = body.decode('utf-8')
+            logger.info("Received RabbitMQ message: %s", message)
+            if message == "Model tuning completed":
+                broadcast_and_persist(message, enable_button=True, activate_page=True)
+            else:
+                broadcast_and_persist(message)
+
+        try:
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host='management', credentials=credentials)
+            )
+            channel = connection.channel()
+            channel.queue_declare(queue='model_queue', durable=True)
+            channel.exchange_declare(exchange='direct_logs', exchange_type='direct')
+            channel.queue_bind(exchange='direct_logs', queue='model_queue', routing_key='model_key')
+            logger.info("RabbitMQ consumer started, waiting for messages.")
+            channel.basic_consume(queue='model_queue', on_message_callback=callback, auto_ack=True)
+            channel.start_consuming()
+        except Exception as e:
+            logger.error("Error in RabbitMQ consumer: %s", e)
 
 socketio.start_background_task(model_tuning_consumer)
 
