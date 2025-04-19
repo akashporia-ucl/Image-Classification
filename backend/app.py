@@ -90,7 +90,7 @@ with app.app_context():
         logger.info("Test user 'admin' created with password 'admin'")
 
     if not AppState.query.first():
-        initial_state = AppState(message='Initial message', button_enabled=False, page_active=False)
+        initial_state = AppState(message='Getting the model ready', button_enabled=False, page_active=False)
         db.session.add(initial_state)
         db.session.commit()
         logger.info("Initial app state created")
